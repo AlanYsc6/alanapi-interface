@@ -22,9 +22,9 @@ public class AlanApiClient {
 
     private static final String GATEWAY_HOST = "http://localhost:8123/api";
 
-    private String accessKey;
+    private final String accessKey;
 
-    private String secretKey;
+    private final String secretKey;
 
     public AlanApiClient(String accessKey, String secretKey) {
         this.accessKey = accessKey;
