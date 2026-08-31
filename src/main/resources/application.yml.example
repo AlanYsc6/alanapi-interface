@@ -21,6 +21,11 @@ server:
   servlet:
     context-path: /api
 
+# SDK 测试凭证（user 表中注册用户的 accessKey / secretKey，供 AlanApiClientTest 使用）
+sdk:
+  access-key: <accessKey>
+  secret-key: <secretKey>
+
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: false

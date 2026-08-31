@@ -2,12 +2,10 @@ package com.alan.alanapiinterface.client;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONUtil;
 import com.alan.alanapiinterface.model.User;
 import com.alan.alanapiinterface.utils.SignUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +20,8 @@ import java.util.Map;
 @Slf4j
 public class AlanApiClient {
 
+    private static final String GATEWAY_HOST = "http://localhost:8123/api";
+
     private String accessKey;
 
     private String secretKey;
@@ -32,7 +32,7 @@ public class AlanApiClient {
     }
 
     /**
-     * 构造签名请求头（所有接口都需要），secretKey 只参与本地签名计算，一定不能随请求发送
+     * 构造签名请求头，secretKey 只参与本地签名计算，一定不能随请求发送
      */
     private Map<String, String> getHeaderMap(String body) {
         Map<String, String> headerMap = new HashMap<>();
@@ -44,32 +44,35 @@ public class AlanApiClient {
         return headerMap;
     }
 
+    /**
+     * 统一发送逻辑：给请求附加签名请求头后执行
+     *
+     * @param request 已配置好地址和参数的请求
+     * @param body    参与签名的请求体内容（表单接口为参数值，JSON 接口为 JSON 串）
+     * @return 响应内容
+     */
+    private String executeWithSign(HttpRequest request, String body) {
+        getHeaderMap(body).forEach(request::header);
+        return request.execute().body();
+    }
+
     public String getNameByGet(String name) {
-        HttpRequest request = HttpRequest.get("http://localhost:8123/api/name/")
-            .form("name", name);
-        getHeaderMap(name).forEach(request::header);
-        String result = request.execute().body();
+        String result = executeWithSign(HttpRequest.get(GATEWAY_HOST + "/name/").form("name", name), name);
         log.info("name:{},result:{}", name, result);
         return result;
     }
 
     public String getNameByPost(String name) {
-        HttpRequest request = HttpRequest.post("http://localhost:8123/api/name/")
-            .form("name", name);
-        getHeaderMap(name).forEach(request::header);
-        String result = request.execute().body();
+        String result = executeWithSign(HttpRequest.post(GATEWAY_HOST + "/name/").form("name", name), name);
         log.info("name:{},result:{}", name, result);
         return result;
     }
 
-    public String getUsernameByPost(@RequestBody User user) {
+    public String getUsernameByPost(User user) {
         String json = JSONUtil.toJsonStr(user);
-        HttpRequest request = HttpRequest.post("http://localhost:8123/api/name/user");
-        getHeaderMap(json).forEach(request::header);
-        String body = request.body(json)
-            .execute().body();
-        log.info("user:{},body:{}", user, body);
-        return body;
+        String result = executeWithSign(HttpRequest.post(GATEWAY_HOST + "/name/user").body(json), json);
+        log.info("user:{},result:{}", user, result);
+        return result;
     }
 
 }

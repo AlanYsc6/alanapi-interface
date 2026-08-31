@@ -1,5 +1,6 @@
 package com.alan.alanapiinterface.utils;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.HMac;
 import cn.hutool.crypto.digest.HmacAlgorithm;
 
@@ -29,6 +30,9 @@ public class SignUtils {
      * @return 签名（小写十六进制）
      */
     public static String genSign(Map<String, String> params, String secretKey) {
+        if (params == null || StrUtil.isBlank(secretKey)) {
+            throw new IllegalArgumentException("签名参数不完整：params 和 secretKey 均不能为空（请检查 accessKey/secretKey 是否正确配置）");
+        }
         String canonicalString = buildCanonicalString(params);
         HMac hMac = new HMac(HmacAlgorithm.HmacSHA256, secretKey.getBytes(StandardCharsets.UTF_8));
         return hMac.digestHex(canonicalString);
