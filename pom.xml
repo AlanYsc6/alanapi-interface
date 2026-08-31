@@ -15,6 +15,13 @@
     </properties>
     <dependencies>
 
+        <!-- alanapi 客户端 SDK（调用开放接口） -->
+        <dependency>
+            <groupId>com.alan</groupId>
+            <artifactId>alanapi-client-sdk</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>

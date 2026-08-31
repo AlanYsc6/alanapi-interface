@@ -1,12 +1,14 @@
 package com.alan.alanapiinterface.client;
 
-import com.alan.alanapiinterface.model.User;
+import com.alan.alanapiclientsdk.client.AlanApiClient;
+import com.alan.alanapiclientsdk.model.User;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import javax.annotation.Resource;
+
 /**
- * AlanApiClientTest
+ * AlanApiClientTest（客户端改由 alanapi-client-sdk 自动装配提供）
  *
  * @author ALan
  * @date 2026/8/30 16:24
@@ -15,28 +17,24 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class AlanApiClientTest {
 
-    // 凭证从 application.yml 的 sdk 配置读取（user 表中注册用户的 accessKey / secretKey），避免密钥入库
-    @Value("${sdk.access-key}")
-    private String accessKey;
-
-    @Value("${sdk.secret-key}")
-    private String secretKey;
+    @Resource
+    private AlanApiClient alanApiClient;
 
     @Test
     void getNameByGet() {
-        String result = new AlanApiClient(accessKey, secretKey).getNameByGet("alan");
+        String result = alanApiClient.getNameByGet("alan");
         System.out.println(result);
     }
 
     @Test
     void getNameByPost() {
-        String result = new AlanApiClient(accessKey, secretKey).getNameByPost("alan");
+        String result = alanApiClient.getNameByPost("alan");
         System.out.println(result);
     }
 
     @Test
     void getUsernameByPost() {
-        String result = new AlanApiClient(accessKey, secretKey).getUsernameByPost(new User("alan"));
+        String result = alanApiClient.getUsernameByPost(new User("alan"));
         System.out.println(result);
     }
 
