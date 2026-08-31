@@ -1,17 +1,14 @@
 package com.alan.alanapiinterface.client;
 
+import cn.hutool.core.util.IdUtil;
 import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONUtil;
 import com.alan.alanapiinterface.model.User;
 import com.alan.alanapiinterface.utils.SignUtils;
 import lombok.extern.slf4j.Slf4j;
-import cn.hutool.core.util.IdUtil;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,33 +31,41 @@ public class AlanApiClient {
         this.secretKey = secretKey;
     }
 
+    /**
+     * 构造签名请求头（所有接口都需要），secretKey 只参与本地签名计算，一定不能随请求发送
+     */
+    private Map<String, String> getHeaderMap(String body) {
+        Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("accessKey", accessKey);
+        headerMap.put("body", body);
+        headerMap.put("nonce", IdUtil.simpleUUID());
+        headerMap.put("timestamp", String.valueOf(System.currentTimeMillis() / 1000));
+        headerMap.put("sign", SignUtils.genSign(headerMap, secretKey));
+        return headerMap;
+    }
+
     public String getNameByGet(String name) {
-        HashMap<String, Object> paramMap = new HashMap<>();
-        paramMap.put("name", name);
-        String result = HttpUtil.get("http://localhost:8123/api/name/", paramMap);
-        log.info("paramMap:{},result:{}", paramMap, result);
+        HttpRequest request = HttpRequest.get("http://localhost:8123/api/name/")
+            .form("name", name);
+        getHeaderMap(name).forEach(request::header);
+        String result = request.execute().body();
+        log.info("name:{},result:{}", name, result);
         return result;
     }
 
-    public String getNameByPost(@RequestParam String name) {
-        HashMap<String, Object> paramMap = new HashMap<>();
-        paramMap.put("name", name);
-        String result = HttpUtil.post("http://localhost:8123/api/name/", paramMap);
-        log.info("paramMap:{},result:{}", paramMap, result);
+    public String getNameByPost(String name) {
+        HttpRequest request = HttpRequest.post("http://localhost:8123/api/name/")
+            .form("name", name);
+        getHeaderMap(name).forEach(request::header);
+        String result = request.execute().body();
+        log.info("name:{},result:{}", name, result);
         return result;
     }
 
     public String getUsernameByPost(@RequestBody User user) {
         String json = JSONUtil.toJsonStr(user);
-        // 构造请求参数并计算签名（secretKey 只参与本地签名计算，一定不能随请求发送）
-        Map<String, String> params = new HashMap<>();
-        params.put("accessKey", accessKey);
-        params.put("body", json);
-        params.put("nonce", IdUtil.simpleUUID());
-        params.put("timestamp", String.valueOf(System.currentTimeMillis() / 1000));
-        params.put("sign", SignUtils.genSign(params, secretKey));
         HttpRequest request = HttpRequest.post("http://localhost:8123/api/name/user");
-        params.forEach(request::header);
+        getHeaderMap(json).forEach(request::header);
         String body = request.body(json)
             .execute().body();
         log.info("user:{},body:{}", user, body);
@@ -68,4 +73,3 @@ public class AlanApiClient {
     }
 
 }
-
