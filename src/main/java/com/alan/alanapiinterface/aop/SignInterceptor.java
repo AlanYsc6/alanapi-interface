@@ -1,6 +1,9 @@
 package com.alan.alanapiinterface.aop;
 
 import com.alan.alanapiinterface.annotation.SignCheck;
+import com.alan.alanapiinterface.common.BaseResponse;
+import com.alan.alanapiinterface.common.ErrorCode;
+import com.alan.alanapiinterface.common.ResultUtils;
 import com.alan.alanapiinterface.service.UserValidateService;
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -46,7 +49,8 @@ public class SignInterceptor {
         String sign = request.getHeader("sign");
         if (!userValidateService.valid(accessKey, nonce, timestamp, sign, body)) {
             log.warn("签名校验未通过, uri: {}, accessKey: {}", request.getRequestURI(), accessKey);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("无权限");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ResultUtils.error(ErrorCode.NO_AUTH_ERROR));
         }
         return joinPoint.proceed();
     }
