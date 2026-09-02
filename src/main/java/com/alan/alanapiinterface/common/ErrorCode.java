@@ -1,10 +1,13 @@
 package com.alan.alanapiinterface.common;
 
+import lombok.Getter;
+
 /**
  * 错误码（与 alanapi-backend 保持一致）
  *
  * @author alan
  */
+@Getter
 public enum ErrorCode {
 
     SUCCESS(200, "成功"),
@@ -29,14 +32,6 @@ public enum ErrorCode {
     ErrorCode(int code, String message) {
         this.code = code;
         this.message = message;
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    public String getMessage() {
-        return message;
     }
 
 }

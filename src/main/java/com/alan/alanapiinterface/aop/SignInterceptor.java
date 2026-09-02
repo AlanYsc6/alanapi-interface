@@ -1,7 +1,6 @@
 package com.alan.alanapiinterface.aop;
 
 import com.alan.alanapiinterface.annotation.SignCheck;
-import com.alan.alanapiinterface.common.BaseResponse;
 import com.alan.alanapiinterface.common.ErrorCode;
 import com.alan.alanapiinterface.common.ResultUtils;
 import com.alan.alanapiinterface.service.UserValidateService;
