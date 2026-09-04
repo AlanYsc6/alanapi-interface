@@ -16,7 +16,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * 接口调用计数服务：在签名校验通过后、业务执行前调用
@@ -116,29 +115,45 @@ public class InterfaceCountService {
     }
 
     /**
-     * 按请求路径匹配平台登记的接口，取 interface_info.url 的路径部分与请求路径比对，
-     * 匹配结果带 TTL 缓存；平台未登记的接口返回 null（不计次、不记录日志）
+     * 按请求路径 + 请求方式匹配平台登记的接口，取 interface_info.url 的路径部分与请求路径比对，
+     * 匹配结果带 TTL 缓存；平台未登记的接口返回 null（不计次、不记录日志）。
+     * GET/POST 可能登记同一个路径，优先按请求方式精确匹配
+     *
+     * @param requestUri    请求路径（含 context-path）
+     * @param requestMethod 请求方式（GET/POST）
      */
-    public Long resolveInterfaceInfoId(String requestUri) {
+    public Long resolveInterfaceInfoId(String requestUri, String requestMethod) {
         if (StrUtil.isBlank(requestUri)) {
             return null;
         }
+        String cacheKey = StrUtil.blankToDefault(requestMethod, "") + " " + requestUri;
         long now = System.currentTimeMillis();
-        PathCacheEntry cacheEntry = pathCache.get(requestUri);
+        PathCacheEntry cacheEntry = pathCache.get(cacheKey);
         if (cacheEntry != null && now - cacheEntry.getCacheTime() < PATH_CACHE_TTL_MS) {
             return cacheEntry.getInterfaceInfoId();
         }
         String requestPath = normalizePath(requestUri);
         List<InterfaceInfo> interfaceInfoList = interfaceInfoMapper.selectList(null);
-        Map<String, Long> pathToIdMap = interfaceInfoList.stream()
-                .filter(info -> StrUtil.isNotBlank(info.getUrl()))
-                .collect(Collectors.toMap(
-                        info -> normalizePath(extractPath(info.getUrl())),
-                        InterfaceInfo::getId,
-                        // 同一路径登记了多个接口时取先登记的
-                        (first, second) -> first));
-        Long interfaceInfoId = pathToIdMap.get(requestPath);
-        pathCache.put(requestUri, new PathCacheEntry(interfaceInfoId, now));
+        Long pathMatched = null;
+        Long methodMatched = null;
+        for (InterfaceInfo info : interfaceInfoList) {
+            if (StrUtil.isBlank(info.getUrl())) {
+                continue;
+            }
+            if (!requestPath.equals(normalizePath(extractPath(info.getUrl())))) {
+                continue;
+            }
+            if (pathMatched == null) {
+                pathMatched = info.getId();
+            }
+            if (methodMatched == null
+                    && StrUtil.isNotBlank(requestMethod)
+                    && requestMethod.equalsIgnoreCase(info.getMethod())) {
+                methodMatched = info.getId();
+            }
+        }
+        Long interfaceInfoId = methodMatched != null ? methodMatched : pathMatched;
+        pathCache.put(cacheKey, new PathCacheEntry(interfaceInfoId, now));
         return interfaceInfoId;
     }
 

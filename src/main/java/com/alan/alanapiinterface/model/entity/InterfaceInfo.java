@@ -34,6 +34,11 @@ public class InterfaceInfo implements Serializable {
     private String url;
 
     /**
+     * 请求类型（GET/POST）
+     */
+    private String method;
+
+    /**
      * 接口状态（0-关闭，1-开启）
      */
     private Integer status;

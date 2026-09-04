@@ -64,7 +64,8 @@ public class SignInterceptor {
                     .body(ResultUtils.error(ErrorCode.NO_AUTH_ERROR));
         }
         // 验签通过后计数，次数不足 / 已禁用的调用直接拒绝，不再进入业务方法
-        Long interfaceInfoId = interfaceCountService.resolveInterfaceInfoId(request.getRequestURI());
+        Long interfaceInfoId = interfaceCountService.resolveInterfaceInfoId(
+                request.getRequestURI(), request.getMethod());
         if (interfaceInfoId != null) {
             String countError = interfaceCountService.checkAndCount(request.getRequestURI(), invokeUser.getId(), interfaceInfoId);
             if (countError != null) {
