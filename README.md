@@ -75,6 +75,6 @@ public class HelloController {
 
 ## 相关项目
 
-- [alanapi-backend](../alanapi-backend)：平台主后端
-- [alanapi-client-sdk](../alanapi-client-sdk)：客户端 SDK
-- [alanapi-frontend](../alanapi-frontend)：Web 前端
+- [alanapi-backend](https://github.com/AlanYsc6/alanapi-backend)：平台主后端
+- [alanapi-client-sdk](https://github.com/AlanYsc6/alanapi-client-sdk)：客户端 SDK
+- [alanapi-frontend](https://github.com/AlanYsc6/alanapi-frontend)：Web 前端
