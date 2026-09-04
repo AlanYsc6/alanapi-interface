@@ -60,12 +60,12 @@ public class UserValidateService {
      * @param timestamp 时间戳（秒）
      * @param sign      签名
      * @param body      请求体内容
-     * @return true 校验通过，放行；false 校验不通过，拒绝
+     * @return 校验通过返回调用用户（供调用计数等后续链路使用）；不通过返回 null
      */
-    public boolean valid(String accessKey, String nonce, String timestamp, String sign, String body) {
+    public User valid(String accessKey, String nonce, String timestamp, String sign, String body) {
         // 1. 基本参数不能为空
         if (StrUtil.hasBlank(accessKey, nonce, timestamp, sign, body)) {
-            return false;
+            return null;
         }
         // 2. 通过 accessKey 查询 user 表，验证用户是否存在
         User invokeUser;
@@ -75,27 +75,32 @@ public class UserValidateService {
             invokeUser = userMapper.selectOne(queryWrapper);
         } catch (Exception e) {
             log.error("查询用户失败, accessKey: {}", accessKey, e);
-            return false;
+            return null;
         }
         if (invokeUser == null) {
             log.warn("用户不存在, accessKey: {}", accessKey);
-            return false;
+            return null;
+        }
+        // 账号被冻结（userStatus = 1）后开放调用立即失效
+        if (invokeUser.getUserStatus() != null && invokeUser.getUserStatus() == 1) {
+            log.warn("用户已被冻结, 拒绝调用, accessKey: {}", accessKey);
+            return null;
         }
         // 3. 校验时间戳，与当前时间相差超过 5 分钟视为过期请求
         long diff;
         try {
             diff = Math.abs(System.currentTimeMillis() / 1000 - Long.parseLong(timestamp));
         } catch (NumberFormatException e) {
-            return false;
+            return null;
         }
         if (diff > MAX_TIMESTAMP_DIFF) {
             log.warn("时间戳校验不通过, timestamp: {}", timestamp);
-            return false;
+            return null;
         }
         // 4. 校验 nonce，防止时间窗口内的重放请求
         if (!tryAcquireNonce(nonce)) {
             log.warn("nonce 重复或 Redis 异常, 可能是重放请求, nonce: {}", nonce);
-            return false;
+            return null;
         }
         // 5. 用查到的 secretKey 重新计算签名并比对（常量时间比较，防时序攻击）
         Map<String, String> params = new HashMap<>();
@@ -104,9 +109,12 @@ public class UserValidateService {
         params.put("nonce", nonce);
         params.put("timestamp", timestamp);
         String expectedSign = SignUtils.genSign(params, invokeUser.getSecretKey());
-        return MessageDigest.isEqual(
+        if (!MessageDigest.isEqual(
                 expectedSign.getBytes(StandardCharsets.UTF_8),
-                sign.getBytes(StandardCharsets.UTF_8));
+                sign.getBytes(StandardCharsets.UTF_8))) {
+            return null;
+        }
+        return invokeUser;
     }
 
     /**

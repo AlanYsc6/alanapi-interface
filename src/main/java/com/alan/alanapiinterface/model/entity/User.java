@@ -45,6 +45,11 @@ public class User implements Serializable {
     private String secretKey;
 
     /**
+     * 账号状态（0-正常，1-冻结）
+     */
+    private Integer userStatus;
+
+    /**
      * 创建时间
      */
     private Date createTime;
