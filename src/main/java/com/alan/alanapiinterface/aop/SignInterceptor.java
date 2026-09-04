@@ -57,19 +57,24 @@ public class SignInterceptor {
         String nonce = request.getHeader("nonce");
         String timestamp = request.getHeader("timestamp");
         String sign = request.getHeader("sign");
+        // 先解析目标接口（带缓存），供计数与失败留痕使用
+        Long interfaceInfoId = interfaceCountService.resolveInterfaceInfoId(
+                request.getRequestURI(), request.getMethod());
         User invokeUser = userValidateService.valid(accessKey, nonce, timestamp, sign, body);
         if (invokeUser == null) {
             log.warn("签名校验未通过, uri: {}, accessKey: {}", request.getRequestURI(), accessKey);
+            // 失败留痕：验签被拒的调用也记入日志（身份无法确认，userId 记 0），但不扣次数
+            invokeLogService.recordRejected(interfaceInfoId, null, request, body, "签名校验未通过");
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ResultUtils.error(ErrorCode.NO_AUTH_ERROR));
         }
         // 验签通过后计数，次数不足 / 已禁用的调用直接拒绝，不再进入业务方法
-        Long interfaceInfoId = interfaceCountService.resolveInterfaceInfoId(
-                request.getRequestURI(), request.getMethod());
         if (interfaceInfoId != null) {
             String countError = interfaceCountService.checkAndCount(request.getRequestURI(), invokeUser.getId(), interfaceInfoId);
             if (countError != null) {
                 log.warn("调用计数拦截, uri: {}, userId: {}, 原因: {}", request.getRequestURI(), invokeUser.getId(), countError);
+                // 失败留痕：记录拒绝原因；不再扣次数（本来就是因为无可用次数被拒）
+                invokeLogService.recordRejected(interfaceInfoId, invokeUser.getId(), request, body, countError);
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(ResultUtils.error(ErrorCode.FORBIDDEN_ERROR, countError));
             }
